@@ -1,0 +1,24 @@
+{
+  "users": [
+    {
+      "fullname": "Demo User",
+      "email": "demo@example.com",
+      "password": "demo1234",
+      "balance": 50000.0,
+      "currency": "PKR",
+      "expenses": [
+        {
+          "category": "Food",
+          "amount": 1200.0,
+          "date": "2026-01-03T08:40:43.327142"
+        },
+        {
+          "category": "Transport",
+          "amount": 600.0,
+          "date": "2026-01-03T09:28:04.054745"
+        }
+      ],
+      "savings": 10000.0
+    }
+  ]
+}

@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Wallet</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!---------------Side bar----------------->
+<div class="sidebar">
+   <h2>SpendWise</h2>
+    <a href="/dashboard">🏠 Dashboard</a>
+    <a href="/wallet">💼 Wallet</a>
+    <a href="/currency">💱 Currency</a>
+    <a href="/history">📜 History</a>
+    <a href="/profile">👤 Profile</a>
+    <a href="/about">ℹAbout</a>
+    <a href="/help">❓ Help</a>
+</div>
+
+<div class="header">
+    <h3>Wallet</h3>
+    <a href="/logout"><button class="btn">Logout</button></a>
+</div>
+
+<!---------------Main content----------------->
+<div class="main">
+    <div class="form-box">
+        <h3>Add Balance</h3>
+        <form id="walletForm" novalidate>
+            <input type="number" name="amount" min="0.01" step="0.01" placeholder="Amount" required>
+            <button type="submit" class="btn">Add Balance</button>
+            <button type="button" class="btn" style="background-color: #ff9800;" onclick="editBalance()">Edit Balance</button>
+            <button type="button" class="btn" style="background-color: #f44336;" onclick="deleteBalance()">Delete Balance</button>
+        </form>
+    </div>
+
+    <div class="form-box" style="margin-top:12px;">
+        <h3>Move to Savings</h3>
+        <form id="savingsForm" novalidate>
+            <input type="number" name="amount" min="0.01" step="0.01" placeholder="Amount to save" required>
+            <button type="submit" class="btn">Save Amount</button>
+            <button type="button" class="btn" style="background-color: #ff9800;" onclick="editSavings()">Edit Savings</button>
+            <button type="button" class="btn" style="background-color: #f44336;" onclick="deleteSavings()">Delete Savings</button>
+        </form>
+    </div>
+
+    <div id="walletInfo" style="margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 5px;">
+        <h4>Current Status</h4>
+        <p><strong>Balance:</strong> <span id="balanceDisplay">Loading...</span></p>
+        <p><strong>Savings:</strong> <span id="savingsDisplay">Loading...</span></p>
+    </div>
+</div>
+
+<!---------------Handling form submissions----------------->
+<!---------------Handling form submissions----------------->
+<script>
+async function loadWalletInfo() {
+  const user = localStorage.getItem('user');
+  if (!user) return;
+  
+  try {
+    const res = await fetch('/api/load?username=' + encodeURIComponent(user));
+    const json = await res.json();
+    const data = json.data || {};
+    const currency = data.currency || 'USD';
+    document.getElementById('balanceDisplay').textContent = currency + ' ' + (Number(data.balance || 0)).toLocaleString();
+    document.getElementById('savingsDisplay').textContent = currency + ' ' + (Number(data.savings || 0)).toLocaleString();
+  } catch (err) {
+    const data = JSON.parse(localStorage.getItem('data::' + user) || '{}');
+    const currency = data.currency || 'USD';
+    document.getElementById('balanceDisplay').textContent = currency + ' ' + (Number(data.balance || 0)).toLocaleString();
+    document.getElementById('savingsDisplay').textContent = currency + ' ' + (Number(data.savings || 0)).toLocaleString();
+  }
+}
+
+// ----Edit Balance via Backend----
+async function editBalance() {
+  const user = localStorage.getItem('user');
+  if (!user) {
+    alert('Please login first.');
+    return;
+  }
+  
+  const newAmount = prompt('Enter new balance amount:');
+  if (newAmount === null) return;
+  
+  const amount = Number(newAmount);
+  if (isNaN(amount) || amount < 0) {
+    alert('Please enter a valid amount.');
+    return;
+  }
+  
+  try {
+    const res = await fetch('/api/edit-balance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user, balance: amount })
+    });
+    
+    const json = await res.json();
+    if (json.status === 'ok') {
+      alert('Balance updated to ' + amount);
+      loadWalletInfo();
+    } else {
+      alert('Error: ' + json.message);
+    }
+  } catch (err) {
+    alert('Failed to update balance');
+  }
+}
+
+// ----Delete Balance via Backend----
+async function deleteBalance() {
+  const user = localStorage.getItem('user');
+  if (!user) {
+    alert('Please login first.');
+    return;
+  }
+  
+  if (!confirm('Are you sure you want to delete your balance? This will set it to 0.')) {
+    return;
+  }
+  
+  try {
+    const res = await fetch('/api/delete-balance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user })
+    });
+    
+    const json = await res.json();
+    if (json.status === 'ok') {
+      alert('Balance deleted');
+      loadWalletInfo();
+    } else {
+      alert('Error: ' + json.message);
+    }
+  } catch (err) {
+    alert('Failed to delete balance');
+  }
+}
+
+// ----Edit Savings via Backend----
+async function editSavings() {
+  const user = localStorage.getItem('user');
+  if (!user) {
+    alert('Please login first.');
+    return;
+  }
+  
+  const newAmount = prompt('Enter new savings amount:');
+  if (newAmount === null) return;
+  
+  const amount = Number(newAmount);
+  if (isNaN(amount) || amount < 0) {
+    alert('Please enter a valid amount.');
+    return;
+  }
+  
+  try {
+    const res = await fetch('/api/edit-savings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user, savings: amount })
+    });
+    
+    const json = await res.json();
+    if (json.status === 'ok') {
+      alert('Savings updated to ' + amount);
+      loadWalletInfo();
+    } else {
+      alert('Error: ' + json.message);
+    }
+  } catch (err) {
+    alert('Failed to update savings');
+  }
+}
+
+// ----Delete Savings via Backend----
+async function deleteSavings() {
+  const user = localStorage.getItem('user');
+  if (!user) {
+    alert('Please login first.');
+    return;
+  }
+  
+  if (!confirm('Are you sure you want to delete your savings?')) {
+    return;
+  }
+  
+  try {
+    const res = await fetch('/api/delete-savings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user })
+    });
+    
+    const json = await res.json();
+    if (json.status === 'ok') {
+      alert('Savings deleted');
+      loadWalletInfo();
+    } else {
+      alert('Error: ' + json.message);
+    }
+  } catch (err) {
+    alert('Failed to delete savings');
+  }
+}
+
+document.getElementById('walletForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const amt = Number(this.amount.value);
+  if (!amt || amt < 0.01) {
+    alert('Please enter an amount greater than 0.');
+    return;
+  }
+  const user = localStorage.getItem('user');
+  if (!user) { 
+    alert('Please login first.');
+    window.location = '/'; 
+    return;
+  }
+  
+  try {
+    let res = await fetch('/api/load?username=' + encodeURIComponent(user));
+    let json = await res.json();
+    let data = json.data || {};
+    data.balance = Number(data.balance || 0) + amt;
+    
+    await fetch('/api/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user, data: data })
+    });
+    
+    alert('Balance added successfully');
+    loadWalletInfo();
+    this.reset();
+  } catch (err) {
+    let data = JSON.parse(localStorage.getItem('data::' + user) || '{}');
+    data.balance = Number(data.balance || 0) + amt;
+    localStorage.setItem('data::' + user, JSON.stringify(data));
+    alert('Balance added (offline mode)');
+    loadWalletInfo();
+    this.reset();
+  }
+});
+
+document.getElementById('savingsForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const amt = Number(this.amount.value);
+  if (!amt || amt < 0.01) {
+    alert('Please enter an amount greater than 0.');
+    return;
+  }
+  const user = localStorage.getItem('user');
+  if (!user) { 
+    alert('Please login first.');
+    window.location = '/'; 
+    return;
+  }
+  
+  try {
+    let res = await fetch('/api/load?username=' + encodeURIComponent(user));
+    let json = await res.json();
+    let data = json.data || {};
+    data.balance = Number(data.balance || 0);
+    
+    if (data.balance < amt) {
+      alert('Insufficient balance to move to savings.');
+      return;
+    }
+
+    data.balance = data.balance - amt;
+    data.savings = Number(data.savings || 0) + amt;
+    
+    await fetch('/api/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user, data: data })
+    });
+    
+    alert('Amount moved to savings');
+    loadWalletInfo();
+    this.reset();
+  } catch (err) {
+    let data = JSON.parse(localStorage.getItem('data::' + user) || '{}');
+    data.balance = Number(data.balance || 0);
+    
+    if (data.balance < amt) {
+      alert('Insufficient balance to move to savings.');
+      return;
+    }
+    
+    data.balance = data.balance - amt;
+    data.savings = Number(data.savings || 0) + amt;
+    localStorage.setItem('data::' + user, JSON.stringify(data));
+    alert('Amount moved to savings (offline mode)');
+    loadWalletInfo();
+    this.reset();
+  }
+});
+
+// Load wallet info on page load
+loadWalletInfo();
+</script>

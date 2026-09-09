@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>About</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="sidebar">
+     <h2>SpendWise</h2>
+    <a href="/dashboard">🏠 Dashboard</a>
+    <a href="/wallet">💼 Wallet</a>
+    <a href="/currency">💱 Currency</a>
+    <a href="/history">📜 History</a>
+    <a href="/profile">👤 Profile</a>
+    <a href="/about">ℹAbout</a>
+    <a href="/help">❓ Help</a>
+</div>
+
+<div class="header">
+    <h3>About Application</h3>
+    <a href="/logout"><button class="btn">Logout</button></a>
+</div>
+
+<div class="main">
+    <div class="container">
+        <div class="form-box">
+            <h3>Overview</h3>
+            <p>
+                This Personal Expense Tracker helps users record and categorize everyday spending,
+                manage wallet balances, and monitor savings with clean visualizations and simple controls.
+            </p>
+        </div>
+
+        <div class="form-box" style="margin-top:12px;">
+            <h3>Key Features</h3>
+            <ul>
+                <li>Track daily and weekly expenses with optional dates.</li>
+                <li>Manage wallet balance and monthly savings easily.</li>
+                <li>Interactive charts to analyze spending by category.</li>
+                <li>Per-user persistence (server + local cache) for resilience.</li>
+            </ul>
+        </div>
+
+        <div class="form-box" style="margin-top:12px;">
+            <h3>How It Works</h3>
+            <p>
+                Sign up or log in, add funds to your wallet, and log expenses. The dashboard updates totals and charts in real time
+                and stores your data so you can return later.
+            </p>
+        </div>
+
+        <div class="form-box" style="margin-top:12px;">
+            <h3>Data & Privacy</h3>
+            <p>
+                For this demo data is stored in a local JSON file on the server. For production use a secure database
+                and proper authentication; personal data is not shared by this app.
+            </p>
+        </div>
+
+        <div class="form-box" style="margin-top:12px;">
+            <h3>Built With</h3>
+            <p>Flask (Python), Chart.js, HTML, CSS and JavaScript — lightweight and easy to extend.</p>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

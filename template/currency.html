@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Currency</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="sidebar">
+     <h2>SpendWise</h2>
+    <a href="/dashboard">🏠 Dashboard</a>
+    <a href="/wallet">💼 Wallet</a>
+    <a href="/currency">💱 Currency</a>
+    <a href="/history">📜 History</a>
+    <a href="/profile">👤 Profile</a>
+    <a href="/about">ℹAbout</a>
+    <a href="/help">❓ Help</a>
+</div>
+
+<div class="header">
+    <h3>Currency</h3>
+    <a href="/logout"><button class="btn">Logout</button></a>
+</div>
+
+<div class="main">
+    <div class="form-box">
+        <h3>Select Currency</h3>
+        <p style="color: #666; font-size: 0.9em;">Changing currency will convert all your balances and expenses</p>
+        <form id="currencyForm">
+            <select name="currency" required id="currencySelect">
+                <option value="">--Choose--</option>
+                <option value="USD">USD (US Dollar)</option>
+                <option value="PKR">PKR (Pakistani Rupee)</option>
+                <option value="EUR">EUR (Euro)</option>
+            </select>
+            <button type="submit" class="btn">Save Currency</button>
+        </form>
+        <p id="currentCurrency" style="margin-top: 20px; color: #124E66; font-weight: bold;">
+            Current Currency: <span id="currencyDisplay">Loading...</span>
+        </p>
+    </div>
+</div>
+
+<!---------------Handling form submission----------------->
+<script>
+// Load current currency on page load
+async function loadCurrentCurrency() {
+  const user = localStorage.getItem('user');
+  if (!user) return;
+  
+  try {
+    const res = await fetch('/api/load?username=' + encodeURIComponent(user));
+    const json = await res.json();
+    const data = json.data || {};
+    const currentCurrency = data.currency || 'USD';
+    document.getElementById('currencyDisplay').textContent = currentCurrency;
+    document.getElementById('currencySelect').value = currentCurrency;
+  } catch (err) {
+    const data = JSON.parse(localStorage.getItem('data::' + user) || '{}');
+    const currentCurrency = data.currency || 'USD';
+    document.getElementById('currencyDisplay').textContent = currentCurrency;
+    document.getElementById('currencySelect').value = currentCurrency;
+  }
+}
+
+document.getElementById('currencyForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const newCurrency = this.currency.value;
+  
+  if (!newCurrency) {
+    alert('Please select a currency.');
+    return;
+  }
+  
+  const user = localStorage.getItem('user');
+  if (!user) {
+    alert('Please login first.');
+    window.location = '/';
+    return;
+  }
+  
+  try {
+    const res = await fetch('/api/convert-currency', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user, currency: newCurrency })
+    });
+    
+    const json = await res.json();
+    if (json.status === 'ok') {
+      alert('Currency changed to ' + newCurrency + '. All balances and expenses have been converted!');
+      localStorage.setItem('currency', newCurrency);
+      window.location = '/dashboard';
+    } else {
+      alert('Error: ' + json.message);
+    }
+  } catch (err) {
+    alert('Failed to change currency. Please try again.');
+  }
+});
+
+// Load currency on page load
+loadCurrentCurrency();
+</script>
+
+</body>
+</html>

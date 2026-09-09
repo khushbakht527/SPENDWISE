@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login | Spendwise</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body class="login-form-body">
+
+<div class="main-auth-page">
+    <div class="main-container">
+        <div class="split-container">
+
+            <!------------- Left side login---------------->
+            <div class="left-login">
+                <h1><b>Welcome to the Spendwise!</b></h1>
+                <p>Manage your expenses effectively and effortlessly.</p>
+            </div>
+
+            <!---------------Right side login-------------->
+            <div class="right-login">
+                <div class="formcard">
+                    <h2>Login</h2>
+
+                    <form id="loginForm" action="/dashboard" method="get" novalidate>
+                        <input type="email" name="email" placeholder="Email" required>
+                        <input type="password" name="password" placeholder="Password" required minlength="6">
+                        <button type="submit" class="btn">Login</button>
+                    </form>
+
+                    <p>New user? <a href="/signup">Sign Up</a></p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
+
+<!---------handling login and localStorage --------------->
+<script>
+
+document.getElementById('loginForm').addEventListener('submit', function(e) 
+{
+  e.preventDefault();
+  var email = this.email.value.trim();
+  var pw = this.password.value;
+  if (pw.length < 6) 
+  {
+    alert('Password must be at least 6 characters.');
+    return;
+  }
+  if (!email)
+   { alert('Please enter an email.');
+    return; }
+
+    // ----------Store user in localStorage---------------
+
+  localStorage.setItem('user', email);
+
+  // Ensuring server has a record; if not, creating default
+
+  fetch('/api/load?username=' + encodeURIComponent(email)).then(r=>r.json()).then(res=>
+  {
+    if (res.status === 'ok' && (!res.data || Object.keys(res.data).length === 0))
+    {
+      const defaultData = { balance:0, savings:0, expenses:[], currency: 'USD' };
+      fetch('/api/save', {method:'POST', headers:{'Content-Type':'application/json'},
+       body: JSON.stringify({username: email, data: defaultData})});
+    }
+    window.location = '/dashboard';
+  }).catch(()=> window.location = '/dashboard');
+});
+</script>
+
+</body>
+</html>

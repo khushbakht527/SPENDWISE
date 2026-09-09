@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Profile</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="sidebar">
+   <h2>SpendWise</h2>
+    <a href="/dashboard">🏠 Dashboard</a>
+    <a href="/wallet">💼 Wallet</a>
+    <a href="/currency">💱 Currency</a>
+    <a href="/history">📜 History</a>
+    <a href="/profile">👤 Profile</a>
+    <a href="/about">ℹ About</a>
+    <a href="/help">❓ Help</a>
+</div>
+
+<div class="header">
+    <h3>User Profile</h3>
+    <a href="/logout"><button class="btn">Logout</button></a>
+</div>
+
+<div class="main">
+    <div class="container">
+        <div class="form-box">
+            <h2 class="page-title">User Profile</h2>
+            <p><b>Name:</b> <span id="pfName">—</span></p>
+            <p><b>Email:</b> <span id="pfEmail">—</span></p>
+            <p><b>Currency:</b> <span id="pfCurrency">—</span> <a href="/currency" style="margin-left:12px; font-size:0.9em;">Change</a></p>
+            <p><b>Balance:</b> <span id="pfBalance">—</span></p>
+            <p><b>Savings:</b> <span id="pfSavings">—</span></p>
+        </div>
+    </div>
+</div>
+
+<!---------------Loading and displaying profile data----------------->
+<script>
+(async function()
+{
+  const user = localStorage.getItem('user');
+  if (!user) 
+  { 
+     return;
+     }
+  try{
+    const res = await fetch('/api/load?username=' + encodeURIComponent(user));
+    const json = await res.json();
+    const d = json.data || {};
+    document.getElementById('pfName').textContent = d.fullname || localStorage.getItem('fullname') || user.split('@')[0];
+    document.getElementById('pfEmail').textContent = user;
+    document.getElementById('pfCurrency').textContent = d.currency || localStorage.getItem('currency') || 'USD';
+    document.getElementById('pfBalance').textContent = (d.currency||localStorage.getItem('currency')||'USD') + ' ' + (Number(d.balance||0)).toLocaleString();
+    document.getElementById('pfSavings').textContent = (d.currency||localStorage.getItem('currency')||'USD') + ' ' + (Number(d.savings||0)).toLocaleString();
+  }catch(err)
+  {
+    const d = JSON.parse(localStorage.getItem('data::' + user) || '{}');
+    document.getElementById('pfName').textContent = d.fullname || localStorage.getItem('fullname') || user.split('@')[0];
+    document.getElementById('pfEmail').textContent = user;
+    document.getElementById('pfCurrency').textContent = d.currency || localStorage.getItem('currency') || 'USD';
+    document.getElementById('pfBalance').textContent = (d.currency||localStorage.getItem('currency')||'USD') + ' ' + (Number(d.balance||0)).toLocaleString();
+    document.getElementById('pfSavings').textContent = (d.currency||localStorage.getItem('currency')||'USD') + ' ' + (Number(d.savings||0)).toLocaleString();
+  }
+  
+})();
+</script>
+
+</body>
+</html>

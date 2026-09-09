@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Sign Up | Spendwise</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body class="login-form-body">
+
+<div class="main-auth-page">
+    <div class="main-container">
+        <div class="split-container">
+
+            <!---------- Left side sign up--------------->
+            <div class="left-login">
+                <h1>Join Spendwise</h1>
+                <p>
+                    Create your account to manage expenses smartly
+                    and stay in control of your finances.
+                </p>
+            </div>
+
+            <!-----------Right side sign up-------------->
+            <div class="right-login">
+                <div class="formcard">
+                    <h2>Create Account</h2>
+
+                    <form id="signupForm" novalidate>
+                        <input type="text" name="fullname" id="fullname"
+                             placeholder="Full Name" required>
+
+                        <input type="email" name="email" id="email"
+                               placeholder="Email" required>
+
+                        <input type="password" name="password" id="password"
+                               placeholder="Password (min 6 characters)"
+                               required minlength="6">
+
+                        <input type="password" name="confirm_password" id="confirm_password"
+                               placeholder="Confirm Password"
+                               required minlength="6">
+
+                        <button type="submit" class="btn">
+                            Create Account
+                        </button>
+                    </form>
+
+                    <p>
+                        Already have an account?
+                        <a href="/login">Login</a>
+                    </p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
+
+<!-------handling signup and localStorage-------->
+<script>
+document.getElementById('signupForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  
+  const fullname = document.getElementById('fullname').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const pw = document.getElementById('password').value;
+  const cpw = document.getElementById('confirm_password').value;
+
+  if (!fullname || !email) { 
+    alert('Please complete name and email.');
+    return; 
+  }
+
+  if (pw.length < 6) {
+    alert('Password must be at least 6 characters.');
+    return;
+  }
+
+  if (pw !== cpw) { 
+    alert('Passwords do not match.');
+    return;
+  }
+
+  // Store user in localStorage
+  localStorage.setItem('user', email);
+  localStorage.setItem('fullname', fullname);
+
+  // Initialize default user data
+  const defaultData = { 
+    balance: 0, 
+    savings: 0, 
+    expenses: [], 
+    currency: 'USD', 
+    fullname: fullname 
+  };
+
+  // Save to server
+  fetch('/api/save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: email, data: defaultData })
+  }).then(() => {
+    alert('Account created successfully!');
+    window.location = '/dashboard';
+  }).catch((err) => {
+    alert('Account created locally. Welcome!');
+    window.location = '/dashboard';
+  });
+});
+</script>
+
+

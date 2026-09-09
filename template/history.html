@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>History</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<!----------------Side bar----------------->
+<div class="sidebar">
+   <h2>SpendWise</h2>
+    <a href="/dashboard">🏠 Dashboard</a>
+    <a href="/wallet">💼 Wallet</a>
+    <a href="/currency">💱 Currency</a>
+    <a href="/history">📜 History</a>
+    <a href="/profile">👤 Profile</a>
+    <a href="/about">ℹAbout</a>
+    <a href="/help">❓ Help</a>
+</div>
+
+<div class="header">
+    <h3>Expense History</h3>
+    <a href="/logout"><button class="btn">Logout</button></a>
+</div>
+
+<div class="main">
+    <div class="container">
+        <div class="form-box">
+            <h3>Previous Expenses (Click to Delete)</h3>
+            <ul id="expenseList" style="list-style: none; padding: 0;">
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!---------------Loading and displaying expense history----------------->
+<script>
+async function deleteHistoryExpense(index) {
+  const user = localStorage.getItem('user');
+  if (!user) { alert('Please login first'); return; }
+  
+  if (!confirm('Delete this expense?')) return;
+  
+  try {
+    const res = await fetch('/api/delete-expense', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user, index: index })
+    });
+    const json = await res.json();
+    if (json.status === 'ok') {
+      alert('Expense deleted');
+      loadHistory();
+    } else {
+      alert('Error: ' + json.message);
+    }
+  } catch (err) {
+    alert('Failed to delete expense');
+  }
+}
+
+async function loadHistory() {
+  const user = localStorage.getItem('user');
+  if (!user) return;
+  
+  try {
+    const res = await fetch('/api/load?username=' + encodeURIComponent(user));
+    const json = await res.json();
+    const data = json.data || {};
+    const expenses = data.expenses || [];
+    const currency = data.currency || 'USD';
+    const ul = document.getElementById('expenseList');
+    ul.innerHTML = '';
+    
+    if (expenses.length === 0) {
+      ul.innerHTML = '<li style="padding: 10px; color: #999;">No expenses yet</li>';
+      return;
+    }
+    
+    expenses.slice().reverse().forEach((e, reverseIdx) => {
+      const actualIdx = expenses.length - 1 - reverseIdx;
+      const d = e.date ? new Date(e.date).toLocaleDateString() : 'today';
+      const li = document.createElement('li');
+      li.style.cssText = 'padding: 12px; border-bottom: 1px solid #ddd; cursor: pointer; transition: background 0.2s;';
+      li.innerHTML = `<strong>${e.category}</strong> – ${currency} ${Number(e.amount).toLocaleString()} (${d}) <span style="float: right; color: red; font-size: 0.9em;">Click to delete</span>`;
+      li.onmouseenter = () => li.style.background = '#fff3cd';
+      li.onmouseleave = () => li.style.background = 'transparent';
+      li.onclick = () => deleteHistoryExpense(actualIdx);
+      ul.appendChild(li);
+    });
+  } catch (err) {
+    const data = JSON.parse(localStorage.getItem('data::' + user) || '{}');
+    const expenses = data.expenses || [];
+    const currency = data.currency || 'USD';
+    const ul = document.getElementById('expenseList');
+    ul.innerHTML = '';
+    
+    if (expenses.length === 0) {
+      ul.innerHTML = '<li style="padding: 10px; color: #999;">No expenses yet</li>';
+      return;
+    }
+    
+    expenses.slice().reverse().forEach((e, reverseIdx) => {
+      const actualIdx = expenses.length - 1 - reverseIdx;
+      const d = e.date ? new Date(e.date).toLocaleDateString() : 'today';
+      const li = document.createElement('li');
+      li.style.cssText = 'padding: 12px; border-bottom: 1px solid #ddd; cursor: pointer; transition: background 0.2s;';
+      li.innerHTML = `<strong>${e.category}</strong> – ${currency} ${Number(e.amount).toLocaleString()} (${d}) <span style="float: right; color: red; font-size: 0.9em;">Click to delete</span>`;
+      li.onmouseenter = () => li.style.background = '#fff3cd';
+      li.onmouseleave = () => li.style.background = 'transparent';
+      li.onclick = () => deleteHistoryExpense(actualIdx);
+      ul.appendChild(li);
+    });
+  }
+}
+
+// Load history on page load
+loadHistory();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<!---------------Side bar----------------->
+<div class="sidebar">
+  <h2>SpendWise</h2>
+    <a href="/dashboard">🏠 Dashboard</a>
+    <a href="/wallet">💼 Wallet</a>
+    <a href="/currency">💱 Currency</a>
+    <a href="/history">📜 History</a>
+    <a href="/profile">👤 Profile</a>
+    <a href="/about">ℹAbout</a>
+    <a href="/help">❓ Help</a>
+</div>
+
+<div class="header">
+    <h3>Dashboard</h3>
+    <a href="/logout"><button class="btn">Logout</button></a>
+</div>
+<!---------------Main content----------------->
+
+<div class="main">
+
+    <div class="cards">
+        <div class="card lightgreen">
+            <h3>Daily Expenses</h3>
+            <h1 id="dailyExpense">$0</h1>
+        </div>
+
+        <div class="card pink">
+            <h3>Weekly Expenses</h3>
+            <h1 id="weeklyExpense">$0</h1>
+        </div>
+
+        <div class="card blue">
+            <h3>Total Balance</h3>
+            <h1 id="totalBalance">$0</h1>
+        </div>
+
+        <div class="card green">
+            <h3>Monthly Savings</h3>
+            <h1 id="monthlySavings">$0</h1>
+        </div>
+    </div>
+
+    <br>
+
+<!----------- Expense Entry Form ---------->
+
+    <div class="form-box" style="margin-top:20px;">
+        <h3>Add Expense</h3>
+        <form id="expenseForm">
+            <select name="category" required>
+                <option value="">--Category--</option>
+                <option>Food</option>
+                <option>Transport</option>
+                <option>Bills</option>
+                <option>Shopping</option>
+                <option>Other</option>
+            </select>
+            <input type="number"  name="amount" min="1" placeholder="Amount" required>
+            <input type="date" name="date" placeholder="Date (optional)">
+            <button class="btn" type="submit">Add Expense</button>
+        </form>
+    </div>
+
+    <div class="form-box" style="margin-top:20px;">
+        <h3>📋 Recent Expenses - Click Any Expense to Delete</h3>
+        <ul id="recentExpensesList" style="list-style: none; padding: 0;">
+        </ul>
+    </div>
+    <br>
+
+<!----------- Expense Analysis Chart ---------->
+    <h2>Expense Analysis</h2>
+    <canvas id="expenseChart" width="600" height="250"></canvas>
+</div>
+<!-------------------- Scripts ------------------>
+<script>
+let chart;
+const ctx = document.getElementById('expenseChart');
+
+function makeChart(labels, data)
+{
+    if (chart) chart.destroy();
+    const context = ctx.getContext('2d');
+    const g = context.createLinearGradient(0,0,0,400);
+    g.addColorStop(0, '#124E66');
+    g.addColorStop(1, '#165E74');
+
+    chart = new Chart(ctx, 
+    {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Expenses ($)',
+                data: data,
+                backgroundColor: g,
+                borderColor: '#0f3f52',
+                borderRadius: 6
+            }]
+        },
+        options:
+         {
+            responsive: true,
+            scales:
+             {
+                x: { ticks: { color: '#08343d' }, grid: { color: 'rgba(18,78,102,0.04)' } },
+                y: { beginAtZero: true, ticks: { color: '#08343d' }, grid: { color: 'rgba(18,78,102,0.04)' } }
+            },
+            plugins:
+             {
+                legend: { display: false },
+                tooltip: { backgroundColor: '#124E66', titleColor: '#fff', bodyColor: '#fff' }
+            }
+        }
+    });
+}
+
+function formatCurrency(n,currency)
+{
+  return (currency||'USD') + ' ' + Number(n||0).toLocaleString();
+}
+
+async function loadUserData()
+{
+  const user = localStorage.getItem('user');
+  if (!user)
+   { window.location = '/'; return; }
+  // ----trying server------
+  try
+  {
+    const res = await fetch('/api/load?username=' + encodeURIComponent(user));
+    const json = await res.json();
+    let data = json.data || {};
+
+    // -----------ensuring  defaults-----------
+    data.balance = Number(data.balance || 0);
+    data.savings = Number(data.savings || 0);
+    data.expenses = data.expenses || [];
+    data.currency = data.currency || 'USD';
+    //------------ storing  a local copy-----------
+    localStorage.setItem('data::' + user, JSON.stringify(data));
+    return data;
+
+  }catch(err)
+  {
+    // -------fallback to localStorage------
+    let data = JSON.parse(localStorage.getItem('data::' + user) || '{}');
+    data.balance = Number(data.balance || 0);
+    data.savings = Number(data.savings || 0);
+    data.expenses = data.expenses || [];
+    data.currency = data.currency || 'USD';
+    return data;
+  }
+}
+// -------------saving user data------------
+
+async function saveUserData(data)
+{
+  const user = localStorage.getItem('user');
+  if (!user) return;
+  try
+  {
+    await fetch('/api/save', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username: user, data: data})});
+  }
+  catch(err)
+  {
+    localStorage.setItem('data::' + user, JSON.stringify(data));
+  }
+}
+
+// ----------computing expenses----------
+function computeWeekly(expenses)
+{
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7*24*60*60*1000);
+  return
+   expenses.filter(e=> new Date(e.date || now) >= weekAgo).reduce((s,e)=>s+Number(e.amount||0),0);
+}
+
+// ----------computing daily expenses----------
+function computeDaily(expenses)
+{
+  const today = new Date().toISOString().slice(0,10);
+  return expenses.filter(e=>
+  {
+    try{ return (new Date(e.date||0)).toISOString().slice(0,10) === today }catch(err){ return false }
+  }).reduce((s,e)=>s+Number(e.amount||0),0);
+}
+
+// ----------updating UI----------
+function updateUI(data)
+{
+  document.getElementById('dailyExpense').textContent = formatCurrency(computeDaily(data.expenses), data.currency);
+  document.getElementById('weeklyExpense').textContent = formatCurrency(computeWeekly(data.expenses), data.currency);
+  document.getElementById('totalBalance').textContent = formatCurrency(data.balance, data.currency);
+  document.getElementById('monthlySavings').textContent = formatCurrency(data.savings, data.currency);
+  // chart by category
+  const categories = ['Food','Transport','Bills','Shopping','Other'];
+  const sums = categories.map(c => data.expenses.filter(e=>e.category===c).reduce((s,ex)=>s+Number(ex.amount||0),0));
+  makeChart(categories, sums);
+}
+
+//------------ handling adding expense--------------
+document.getElementById('expenseForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const cat = this.category.value;
+  const amt = Number(this.amount.value);
+  const dateInput = this.date && this.date.value;
+  if (!cat || !amt || amt <=0) 
+  {
+     alert('Choose category and enter a valid amount'); 
+  return;
+ }
+  const user = localStorage.getItem('user');
+  if (!user)
+   {
+     alert('Please login first'); window.location = '/'; 
+     return; 
+    }
+
+  let data = await loadUserData();
+  const now = dateInput ? new Date(dateInput).toISOString() : new Date().toISOString();
+  data.expenses.push({ category: cat, amount: amt, date: now });
+
+  // ---------updating balance-----------
+  data.balance = Number(data.balance || 0) - amt;
+  data.savings = Math.max(0, Number(data.savings || 0));
+  
+  await saveUserData(data);
+  updateUI(data);
+  displayRecentExpenses(data);
+  this.reset();
+});
+
+// ----delete expense function----
+async function deleteExpense(index) {
+  const user = localStorage.getItem('user');
+  if (!user) { alert('Please login first'); return; }
+  
+  if (!confirm('Delete this expense?')) return;
+  
+  try {
+    const res = await fetch('/api/delete-expense', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user, index: index })
+    });
+    const json = await res.json();
+    if (json.status === 'ok') {
+      const data = await loadUserData();
+      updateUI(data);
+      displayRecentExpenses(data);
+      alert('Expense deleted');
+    } else {
+      alert('Error: ' + json.message);
+    }
+  } catch (err) {
+    alert('Failed to delete expense');
+  }
+}
+
+// ----display recent expenses----
+function displayRecentExpenses(data) {
+  const ul = document.getElementById('recentExpensesList');
+  ul.innerHTML = '';
+  
+  if (data.expenses.length === 0) {
+    ul.innerHTML = '<li style="padding: 10px; color: #999;">No expenses yet</li>';
+    return;
+  }
+  
+  data.expenses.slice().reverse().forEach((e, reverseIdx) => {
+    const actualIdx = data.expenses.length - 1 - reverseIdx;
+    const d = e.date ? new Date(e.date).toLocaleDateString() : 'today';
+    const li = document.createElement('li');
+    li.style.cssText = 'padding: 12px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;';
+    
+    const textDiv = document.createElement('div');
+    textDiv.innerHTML = `<strong>${e.category}</strong> – ${data.currency} ${Number(e.amount).toLocaleString()} (${d})`;
+    
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = '🗑️ DELETE';
+    deleteBtn.style.cssText = 'background-color: #f44336; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;';
+    deleteBtn.onclick = (event) => {
+      event.stopPropagation();
+      deleteExpense(actualIdx);
+    };
+    
+    li.appendChild(textDiv);
+    li.appendChild(deleteBtn);
+    
+    li.onmouseenter = () => li.style.background = '#fff3cd';
+    li.onmouseleave = () => li.style.background = 'transparent';
+    
+    ul.appendChild(li);
+  });
+}
+
+// -----------initial load-------------
+loadUserData().then(d=>{ 
+  updateUI(d); 
+  displayRecentExpenses(d);
+}).catch(err=>{ 
+  console.error(err); 
+});
+</script>
+
+</body>
+</html>
